@@ -5,10 +5,23 @@
         <link rel='stylesheet' href='/stylesheets/style.css' />
     </head>
     <body>
-        <form action="/action_page.php" method="get">
-            First name: <input type="text" name="fname"><br>
-            Last name: <input type="text" name="lname"><br>
+        <h1><%=title %></h1>
+        <form action="./test.html" method="get">
+            name: <input type="text" name="name"><br>
             <input type="submit" value="Submit">
         </form>
+
+        <table border="1">
+            <% for(var i=0; i < data.length; i++) { %>
+            <tr>
+                <td><%= data[i].inst %></td>
+                <td><%= data[i].cname %></td>
+                <td><%= data[i].point %></td>
+                <td><%= data[i].time %></td>
+            </tr>
+            <% } %>
+        </table>
     </body>
 </html>
+
+
