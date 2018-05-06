@@ -1,1 +1,1 @@
-web: node index.js
+web: sh -c 'cd ./seproj && DEBUG=myapp:* npm start'
