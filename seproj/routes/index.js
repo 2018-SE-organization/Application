@@ -5,48 +5,44 @@ var mongo = require('mongodb');
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  res.render('index', { title: 'Express' });
+    res.render('index', { title: 'Express' });
 });
 
 /* simple database sample page */
 var mongoose = require('mongoose');
 
-mongoose.connect("mongodb://[act]:[pw]@ds161539.mlab.com:61539/se-project-2018");
+mongoose.connect("mongodb://[user]:[pw]@ds161539.mlab.com:61539/se-project-2018");
 //stuff pw
 
 console.log(mongoose.connection.readyState);
 var Schema = mongoose.Schema;
 
-var UserSchema = new Schema(
-  {
-    inst:      { type: String },
-    point:     { type: Number },
-    time:      { type: String },
-    url:       { type: String},
-    cname:     { type: String},
-  }
-);
+var CourseSchema = new Schema({
+    instructor: { type: [String] },
+    point: { type: Number },
+    session: { type: [String] },
+    place: { type: [String] },
+    crse: { type: String },
+});
 
-function reqName(name, callback){
-  var result;
-  var Course = mongoose.model('Course', UserSchema, 'test');
-  Course.find({inst:name})
-    .select('inst cname point time')
-    .exec(function(err, courses){
-      callback(courses);
-    });
+function reqInst(name, callback) {
+    var result;
+    var Course = mongoose.model('Course', CourseSchema, 'beta');
+    Course.find({ instructor: { $regex: name } })
+        .select('crse point instructor session place')
+        .exec(function(err, courses) {
+            callback(courses);
+        });
 }
 
-router.get('/test.html', function (req, res) {
-  console.log(req.query);
-  if(req.query.name === undefined)
-    res.render('test', {title: 'REQ COURSE', data:[]});
-  else{
-    reqName(req.query.name, function(result){
-      res.render('test', {title: 'REQ COURSE', data:result});
+router.post('/userSearch', function(req, res) {
+    reqInst(req.body.Keyword, function(result) {
+        res.json({ data: result })
     });
-  }
-  //class: reqName(req.query.name)
-});
+})
+
+router.get('/table', function(req, res) {
+    res.render("table", {});
+})
 
 module.exports = router;
