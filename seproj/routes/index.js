@@ -5,7 +5,7 @@ var mongo = require('mongodb');
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-    res.render('index', { title: 'Express' });
+  res.render('index', { title: 'Express' });
 });
 
 /* simple database sample page */
@@ -18,31 +18,124 @@ console.log(mongoose.connection.readyState);
 var Schema = mongoose.Schema;
 
 var CourseSchema = new Schema({
-    instructor: { type: [String] },
-    point: { type: Number },
-    session: { type: [String] },
-    place: { type: [String] },
-    crse: { type: String },
+  instructor: { type: [String] },
+  point: { type: Number },
+  session: { type: [String] },
+  place: { type: [String] },
+  crse: { type: String },
 });
 
 function reqInst(name, callback) {
-    var result;
-    var Course = mongoose.model('Course', CourseSchema, 'beta');
-    Course.find({ instructor: { $regex: name } })
-        .select('crse point instructor session place')
-        .exec(function(err, courses) {
-            callback(courses);
-        });
+  var result;
+  var Course = mongoose.model('Course', CourseSchema, 'beta');
+  Course.find({ instructor: { $regex: name } })
+    .select('crse point instructor session place')
+    .exec(function(err, courses) {
+      callback(courses);
+    });
+}
+
+function eqObj(a, b){
+  return JSON.stringify(a) === JSON.stringify(b);
 }
 
 router.post('/userSearch', function(req, res) {
-    reqInst(req.body.Keyword, function(result) {
-        res.json({ data: result })
-    });
+  //req.body.College (學院)
+  //req.body.Department (系別)
+  //req.body.Category (課程類別)
+  //req.body.Time_Interval (時間:分為五天，當天沒想要的時間為0)
+  //console.log("req.body.College"+req.body.College);
+
+  query = {};
+  if(req.body.Department !== ""){
+    code = { "資訊科學系" : [/^7.3/],
+        "心理學系" : [/^7.2/],
+        "應用數學系" : [/^701/, /^751/],
+        "金融學系" : [/^3.2/],
+        "國貿學系" : [/^3.1/],
+        "會計學系" : [/^3(0|5)1/],
+        "統計學系" : [/^3(0|5)4/],
+        "企業管理學系" : [/^3.5/],
+        "資訊管理學系" : [/^3.6/],
+        "財務管理學系" : [/^3.7/],
+        "新聞學系" : [/^4(0|5)1/],
+        "廣告學系" : [/^4(0|5)2/],
+        "廣播電視學系" : [/^4(0|5)3/],
+        "法律學系" : [/^6(0|5)1/],
+        "政治學系" : [/^2(0|5)2/],
+        "社會學系" : [/^2(0|5)4/],
+        "財政學系" : [/^2(0|5)5/],
+        "公共行政學系" : [/^2(0|5)6/],
+        "地政學系" : [/^2(0|5)7/],
+        "經濟學系" : [/^2(0|5)8/],
+        "民族學系" : [/^2(0|5)9/],
+        "中國文學系" : [/^1(0|5)1/],
+        "歷史學系" : [/^1(0|5)3/],
+        "哲學系" : [/^1(0|5)4/],
+        "外交學系" : [/^2(0|5)3/],
+        "教育學系" : [/^1(0|5)2/],
+    }[req.body.Department];
+    query.code = { $in: code }
+  }
+  else if(req.body.College !== ""){
+    code = { "理學院" : "7",
+      "商學院" : "3",
+      "傳播學院" : "4",
+      "法學院" : "6",
+      "社會科學學院" : "2",
+      "文學院" : "1",
+      "國際事務學院" : "8",
+      "教育學院" : "9"
+    }[req.body.College];
+    query.code = { $regex: '^' + code }
+  }
+
+  if(req.body.Category !== ""){
+    if(req.body.Category == "必修"){
+      query.crse_type = "必";
+    }
+    else if(req.body.Category == "選修"){
+      query.crse_type = "選";
+    }
+    else if(req.body.Category == "體育"){
+      query.code = { $regex: /^002/ }
+    }
+    else if(req.body.Category == "服務學習"){
+      query.code = { $regex: /^050/ }
+    }
+    else if(req.body.Category == "---通識(全部)---"){
+      query.code = { $in: [/^03/, /^04/]};
+    }
+    else if(req.body.Category == "中文通識"){
+      query.code = { $regex: /^031/ }
+    }
+    else if(req.body.Category == "外文通識"){
+      query.code = { $regex: /^032/ }
+    }
+    else if(req.body.Category == "人文通識"){
+      query.code = { $regex: /^041/ }
+    }
+    else if(req.body.Category == "社會通識"){
+      query.code = { $regex: /^042/ }
+    }
+    else if(req.body.Category == "自然通識"){
+      query.code = { $regex: /^043/ }
+    }
+  }
+  if(!eqObj(req.body.Time_Interval,
+    { '1': '0', '2': '0', '3': '0', '4': '0', '5': '0' })){
+    // todo
+  }
+  if(req.body.Keyword !== ""){
+    // todo
+  }
+  //  reqInst(req.body.Keyword, function(result) {
+  //      res.json({ data: result })
+  //  });
 })
 
 router.get('/table', function(req, res) {
-    res.render("table", {});
+  res.render("table", {});
 })
 
 module.exports = router;
