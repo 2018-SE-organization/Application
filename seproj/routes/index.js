@@ -11,7 +11,7 @@ router.get('/', function(req, res, next) {
 /* simple database sample page */
 var mongoose = require('mongoose');
 
-mongoose.connect("mongodb://seAdmin:seproject2018@ds161539.mlab.com:61539/se-project-2018");
+mongoose.connect("[here]");
 //stuff pw
 
 //console.log(mongoose.connection.readyState);
@@ -28,11 +28,10 @@ var CourseSchema = new Schema({
 function reqInst(query, callback) {
   var result;
   var Course = mongoose.model('Course', CourseSchema, 'beta');
+  console.log("query : " , query);
   Course.find(query)
     .select('crse point instructor session place')
     .exec(function(err, courses) {
-      console.log(query);
-      console.log(courses);
       callback(courses);
     });
 }
@@ -47,10 +46,14 @@ router.post('/userSearch', function(req, res) {
   //req.body.Category (課程類別)
   //req.body.Time_Interval (時間:分為五天，當天沒想要的時間為0)
   //console.log("req.body.College"+req.body.College);
+  var callback = function(result) {
+    console.log(result);
+    res.json({ data: result });
+  }
 
   query = {};
   if(req.body.Department !== ""){
-    code = { "資訊科學系" : [/^7.3/],
+    codes = { "資訊科學系" : [/^7.3/],
       "心理學系" : [/^7.2/],
       "應用數學系" : [/^701/, /^751/],
       "金融學系" : [/^3.2/],
@@ -76,11 +79,13 @@ router.post('/userSearch', function(req, res) {
       "哲學系" : [/^1(0|5)4/],
       "外交學系" : [/^2(0|5)3/],
       "教育學系" : [/^1(0|5)2/],
-    }[req.body.Department];
-    query.code = { $in: code }
+    };
+    if(req.body.Department in codes){
+      query.code = { $in: codes[req.body.Department] };
+    }
   }
   else if(req.body.College !== ""){
-    code = { "理學院" : "7",
+    codes = { "理學院" : "7",
       "商學院" : "3",
       "傳播學院" : "4",
       "法學院" : "6",
@@ -88,8 +93,10 @@ router.post('/userSearch', function(req, res) {
       "文學院" : "1",
       "國際事務學院" : "8",
       "教育學院" : "9"
-    }[req.body.College];
-    query.code = { $regex: '^' + code }
+    };
+    if(req.body.College in codes){
+      query.code = { $regex: '^' + codes[req.body.College] };
+    }
   }
 
   if(req.body.Category !== ""){
@@ -98,34 +105,46 @@ router.post('/userSearch', function(req, res) {
     }
     else if(req.body.Category == "選修"){
       query.crse_type = "選";
-    } else if(req.body.Category == "體育"){
-      query.code = { $regex: /^002/ }
     }
-    else if(req.body.Category == "服務學習"){
-      query.code = { $regex: /^050/ }
-    }
-    else if(req.body.Category == "---通識(全部)---"){
-      query.code = { $in: [/^03/, /^04/]};
-    }
-    else if(req.body.Category == "中文通識"){
-      query.code = { $regex: /^031/ }
-    }
-    else if(req.body.Category == "外文通識"){
-      query.code = { $regex: /^032/ }
-    }
-    else if(req.body.Category == "人文通識"){
-      query.code = { $regex: /^041/ }
-    }
-    else if(req.body.Category == "社會通識"){
-      query.code = { $regex: /^042/ }
-    }
-    else if(req.body.Category == "自然通識"){
-      query.code = { $regex: /^043/ }
+    else{
+      types = ["體育", "服務學習", "---通識(全部)---", "中文通識",
+        "外文通識", "人文通識", "社會通識", "自然通識"];
+      codes = [{ $regex: /^002/ }, { $regex: /^050/ },
+        { $in: [/^03/, /^04/]}, { $regex: /^031/ },
+        { $regex: /^032/ }, { $regex: /^041/ } ,
+        { $regex: /^042/ }, { $regex: /^043/ } ];
+      for(var i = 0 ; i < types.length ; i++){
+        if(req.body.Category === types[i]){
+          query.code = codes[i];
+          break;
+        }
+      }
     }
   }
   if(!eqObj(req.body.Time_Interval,
     { '1': '0', '2': '0', '3': '0', '4': '0', '5': '0' })){
-    // todo
+    function toBin(n){
+      if(n == 0) return '';
+      else return toBin(Math.floor(n / 2)) + String(n % 2)
+    }
+    time = req.body.Time_Interval;
+    conds = [];
+    for(var i = 0 ; i < 5 ; i++){
+      if(time[String(i + 1)] !== '0'){
+        day = time[String(i + 1)];
+        mask = "00";
+        for(var j = 0 ; j < 9 ; j++){
+          mask += day.indexOf(String(j + 1)) >= 0 ? '.' : '0';
+        }
+        bin = toBin(i + 1);
+        mask = '0'.repeat(3 - bin.length) + bin + mask;
+        mask += "00000";
+        conds.push(new RegExp(mask,'i'));
+      }
+    }
+    if(conds.length !== 0){
+      query.session = { $in : conds };
+    }
   }
   if(req.body.Keyword !== ""){
     var key = req.body.Keyword;
@@ -145,19 +164,17 @@ router.post('/userSearch', function(req, res) {
                     insts_en = insts_en.filter(function(e){return e[1] > 0.7;})
                     course = course.filter(function(e){return e[1] > 0.7;})
                     course_en = course_en.filter(function(e){return e[1] > 0.7;})
-                    
+
                     if(insts.length !== 0)
                       query.instructor = {$in : insts.map(e => e[0])};
                     if(insts_en.length !== 0)
                       query.instructor_en = {$in : insts_en.map(e => e[0])};
                     if(course.length + course_en.length !== 0)
-                    query.crse = {$in :
-                      course.map(e => new RegExp(e[0] + '*', "i"))
-                      .concat(course_en.map(e => new RegExp('*' + e[0], "i")))};
+                      query.crse = {$in :
+                        course.map(e => new RegExp(e[0] + '*', "i"))
+                        .concat(course_en.map(e => new RegExp('*' + e[0], "i")))};
 
-                    return reqInst(query,  function(result) {
-                      res.json({ data: result })
-                    });
+                    return reqInst(query, callback);
 
                   });
               });
@@ -165,9 +182,8 @@ router.post('/userSearch', function(req, res) {
       });
   }
   else{
-    return reqInst(query,  function(result) { res.json({ data: result }) });
+    return reqInst(query, callback);
   }
-  console.log(query);
 
 })
 
