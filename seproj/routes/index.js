@@ -11,10 +11,10 @@ router.get('/', function(req, res, next) {
 /* simple database sample page */
 var mongoose = require('mongoose');
 
-mongoose.connect("mongodb://[user]:[pw]@ds161539.mlab.com:61539/se-project-2018");
+mongoose.connect("mongodb://seAdmin:seproject2018@ds161539.mlab.com:61539/se-project-2018");
 //stuff pw
 
-console.log(mongoose.connection.readyState);
+//console.log(mongoose.connection.readyState);
 var Schema = mongoose.Schema;
 
 var CourseSchema = new Schema({
@@ -25,12 +25,14 @@ var CourseSchema = new Schema({
   crse: { type: String },
 });
 
-function reqInst(name, callback) {
+function reqInst(query, callback) {
   var result;
   var Course = mongoose.model('Course', CourseSchema, 'beta');
-  Course.find({ instructor: { $regex: name } })
+  Course.find(query)
     .select('crse point instructor session place')
     .exec(function(err, courses) {
+      console.log(query);
+      console.log(courses);
       callback(courses);
     });
 }
@@ -49,31 +51,31 @@ router.post('/userSearch', function(req, res) {
   query = {};
   if(req.body.Department !== ""){
     code = { "資訊科學系" : [/^7.3/],
-        "心理學系" : [/^7.2/],
-        "應用數學系" : [/^701/, /^751/],
-        "金融學系" : [/^3.2/],
-        "國貿學系" : [/^3.1/],
-        "會計學系" : [/^3(0|5)1/],
-        "統計學系" : [/^3(0|5)4/],
-        "企業管理學系" : [/^3.5/],
-        "資訊管理學系" : [/^3.6/],
-        "財務管理學系" : [/^3.7/],
-        "新聞學系" : [/^4(0|5)1/],
-        "廣告學系" : [/^4(0|5)2/],
-        "廣播電視學系" : [/^4(0|5)3/],
-        "法律學系" : [/^6(0|5)1/],
-        "政治學系" : [/^2(0|5)2/],
-        "社會學系" : [/^2(0|5)4/],
-        "財政學系" : [/^2(0|5)5/],
-        "公共行政學系" : [/^2(0|5)6/],
-        "地政學系" : [/^2(0|5)7/],
-        "經濟學系" : [/^2(0|5)8/],
-        "民族學系" : [/^2(0|5)9/],
-        "中國文學系" : [/^1(0|5)1/],
-        "歷史學系" : [/^1(0|5)3/],
-        "哲學系" : [/^1(0|5)4/],
-        "外交學系" : [/^2(0|5)3/],
-        "教育學系" : [/^1(0|5)2/],
+      "心理學系" : [/^7.2/],
+      "應用數學系" : [/^701/, /^751/],
+      "金融學系" : [/^3.2/],
+      "國貿學系" : [/^3.1/],
+      "會計學系" : [/^3(0|5)1/],
+      "統計學系" : [/^3(0|5)4/],
+      "企業管理學系" : [/^3.5/],
+      "資訊管理學系" : [/^3.6/],
+      "財務管理學系" : [/^3.7/],
+      "新聞學系" : [/^4(0|5)1/],
+      "廣告學系" : [/^4(0|5)2/],
+      "廣播電視學系" : [/^4(0|5)3/],
+      "法律學系" : [/^6(0|5)1/],
+      "政治學系" : [/^2(0|5)2/],
+      "社會學系" : [/^2(0|5)4/],
+      "財政學系" : [/^2(0|5)5/],
+      "公共行政學系" : [/^2(0|5)6/],
+      "地政學系" : [/^2(0|5)7/],
+      "經濟學系" : [/^2(0|5)8/],
+      "民族學系" : [/^2(0|5)9/],
+      "中國文學系" : [/^1(0|5)1/],
+      "歷史學系" : [/^1(0|5)3/],
+      "哲學系" : [/^1(0|5)4/],
+      "外交學系" : [/^2(0|5)3/],
+      "教育學系" : [/^1(0|5)2/],
     }[req.body.Department];
     query.code = { $in: code }
   }
@@ -96,8 +98,7 @@ router.post('/userSearch', function(req, res) {
     }
     else if(req.body.Category == "選修"){
       query.crse_type = "選";
-    }
-    else if(req.body.Category == "體育"){
+    } else if(req.body.Category == "體育"){
       query.code = { $regex: /^002/ }
     }
     else if(req.body.Category == "服務學習"){
@@ -127,15 +128,72 @@ router.post('/userSearch', function(req, res) {
     // todo
   }
   if(req.body.Keyword !== ""){
-    // todo
+    var key = req.body.Keyword;
+    fuzzy_searh('course/uinstructor.txt',
+      key, 10, function(insts){
+        return fuzzy_searh('course/uinstructor_en.txt',
+          key, 10, function(insts_en){
+            return fuzzy_searh('course/ucourse_name.txt',
+              key, 10, function(course){
+                return fuzzy_searh('course/ucourse_name_en.txt',
+                  key, 10, function(course_en){
+                    var eq_one = function(e){return e[1] === 1;};
+                    insts = insts.some(eq_one) ? insts.filter(eq_one) : insts;
+                    insts_en = insts_en.some(eq_one) ? insts_en.filter(eq_one) : insts_en;
+
+                    insts = insts.filter(function(e){return e[1] > 0.7;})
+                    insts_en = insts_en.filter(function(e){return e[1] > 0.7;})
+                    course = course.filter(function(e){return e[1] > 0.7;})
+                    course_en = course_en.filter(function(e){return e[1] > 0.7;})
+                    
+                    if(insts.length !== 0)
+                      query.instructor = {$in : insts.map(e => e[0])};
+                    if(insts_en.length !== 0)
+                      query.instructor_en = {$in : insts_en.map(e => e[0])};
+                    if(course.length + course_en.length !== 0)
+                    query.crse = {$in :
+                      course.map(e => new RegExp(e[0] + '*', "i"))
+                      .concat(course_en.map(e => new RegExp('*' + e[0], "i")))};
+
+                    return reqInst(query,  function(result) {
+                      res.json({ data: result })
+                    });
+
+                  });
+              });
+          });
+      });
   }
-  //  reqInst(req.body.Keyword, function(result) {
-  //      res.json({ data: result })
-  //  });
+  else{
+    return reqInst(query,  function(result) { res.json({ data: result }) });
+  }
+  console.log(query);
+
 })
 
 router.get('/table', function(req, res) {
   res.render("table", {});
 })
+
+
+var fs = require('fs');
+var wuzzy = require('wuzzy');
+
+function fuzzy_searh(fileName, desire, number, cb){
+  list = [];
+  desire = desire.toUpperCase();
+  fs.readFile(fileName, function(err, data) {
+
+    var lines = String(data).split('\n');
+
+    lines.forEach(function(line) {
+      list.push([line, wuzzy.jarowinkler(line, desire)]);
+    });
+
+    list = list.sort(function(a, b) { return b[1] - a[1]; });
+    list = list.slice(0, number);
+    cb(list);
+  });
+}
 
 module.exports = router;
