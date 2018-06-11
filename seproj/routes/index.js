@@ -11,7 +11,7 @@ router.get('/', function(req, res, next) {
 /* simple database sample page */
 var mongoose = require('mongoose');
 
-mongoose.connect("[here]");
+mongoose.connect("[pw]");
 //stuff pw
 
 //console.log(mongoose.connection.readyState);
