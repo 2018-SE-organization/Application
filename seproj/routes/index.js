@@ -18,11 +18,13 @@ mongoose.connect("mongodb://user:se2018user@ds161539.mlab.com:61539/se-project-2
 var Schema = mongoose.Schema;
 
 var CourseSchema = new Schema({
+  instructor_en : { type: [String] },
   instructor: { type: [String] },
   point: { type: Number },
   session: { type: [String] },
   place: { type: [String] },
   crse: { type: String },
+  url: {type:String},
 });
 
 function reqInst(query, callback) {
@@ -30,7 +32,7 @@ function reqInst(query, callback) {
   var Course = mongoose.model('Course', CourseSchema, 'beta');
   console.log("query : " , query);
   Course.find(query)
-    .select('crse point instructor session place')
+    .select('crse point instructor instructor_en session place url')
     .exec(function(err, courses) {
       callback(courses, query);
     });
@@ -58,8 +60,7 @@ router.post('/userSearch', function(req, res) {
 
       }
       else if(q.hasOwnProperty("instructor")){
-        test = function(e){return e.instructor.includes(q.instructor);}//q.instructor === e.instructor;}
-        console.log(q.instructor);
+        test = function(e){return e.instructor.includes(q.instructor);}
       }
       else if(q.hasOwnProperty("instructor_en")){
         test = function(e){return e.instructor_en.includes(q.instructor_en);}
@@ -70,6 +71,7 @@ router.post('/userSearch', function(req, res) {
         }
       }
     }
+    //console.log(courses);
     res.json({ data: courses });
   }
 
@@ -186,8 +188,9 @@ router.post('/userSearch', function(req, res) {
                   insts_en.map(function(e){e.push("instructor_en");})
                   course = course.map(function(e){ return [(new RegExp(e[0], "i")), e[1]]});
                   course.map(function(e){e.push("crse");})
-                  course_en = course_en.map(function(e){ return [new RegExp(e[0], "i"), e[1]]});
-                  course_en.map(function(e){e.push("crse");})
+
+                  
+                  course_en = [[new RegExp(key,"i") , 1, "crse"]]
 
                   var all = insts.concat(insts_en.concat(course.concat(course_en)));
 
@@ -221,7 +224,7 @@ router.get('/table', function(req, res) {
 })
 
 router.get('/try', function(req, res) {
-  key = "廖俊峰";
+  key = "Physics";
   fuzzy_searh('course/uinstructor.txt',
     key, 10, function(insts){
       return fuzzy_searh('course/uinstructor_en.txt',
@@ -236,9 +239,13 @@ router.get('/try', function(req, res) {
 
                   insts.map(function(e){e.push("inst");})
                   insts_en.map(function(e){e.push("inst_en");})
-                  course = course.map(function(e){ return [(new RegExp('*' + e[0], "i")), e[1]]});
+                  course = course.map(function(e){ return [e[0], e[1]]});
                   course.map(function(e){e.push("course");})
-                  course_en = course_en.map(function(e){ return [new RegExp('*' + e[0], "i"), e[1]]});
+
+                  course_en = course_en.map(function(e){ return [e[0], e[1]]});
+
+
+                  res.send(course_en);
                   course_en.map(function(e){e.push("course_en");})
 
                   var all = insts.concat(insts_en.concat(course.concat(course_en)));
