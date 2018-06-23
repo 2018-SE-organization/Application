@@ -11,7 +11,7 @@ router.get('/', function(req, res, next) {
 /* simple database sample page */
 var mongoose = require('mongoose');
 
-mongoose.connect("[pw]");
+mongoose.connect("mongodb://user:se2018user@ds161539.mlab.com:61539/se-project-2018");
 //stuff pw
 
 //console.log(mongoose.connection.readyState);
@@ -200,7 +200,7 @@ function fuzzy_searh(fileName, desire, number, cb){
   desire = desire.toUpperCase();
   fs.readFile(fileName, function(err, data) {
 
-    var lines = String(data).split('\n');
+    var lines = String(data).replace('\r', '').split('\n');
 
     lines.forEach(function(line) {
       list.push([line, wuzzy.jarowinkler(line, desire)]);
