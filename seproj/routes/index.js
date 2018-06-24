@@ -52,23 +52,28 @@ router.post('/userSearch', function(req, res) {
 
     //sort
     courses = [];
-    for(var idx in query["$or"]){
-      var q = query["$or"][idx]
-      var test;
-      if(q.hasOwnProperty("crse")){
-        test = function(e){return q.crse.test(e);}
-      }
-      else if(q.hasOwnProperty("instructor")){
-        test = function(e){return e.instructor.includes(q.instructor);}
-      }
-      else if(q.hasOwnProperty("instructor_en")){
-        test = function(e){return e.instructor_en.includes(q.instructor_en);}
-      }
-      for(var c in result){
-        if(test(result[c]) && courses.indexOf(result[c]) == -1){
-          courses.push(result[c]);
+    if(query.hasOwnProperty("$or")){
+      for(var idx in query["$or"]){
+        var q = query["$or"][idx]
+        var test;
+        if(q.hasOwnProperty("crse")){
+          test = function(e){return q.crse.test(e);}
+        }
+        else if(q.hasOwnProperty("instructor")){
+          test = function(e){return e.instructor.includes(q.instructor);}
+        }
+        else if(q.hasOwnProperty("instructor_en")){
+          test = function(e){return e.instructor_en.includes(q.instructor_en);}
+        }
+        for(var c in result){
+          if(test(result[c]) && courses.indexOf(result[c]) == -1){
+            courses.push(result[c]);
+          }
         }
       }
+    }
+    else{
+     courses = result;
     }
     console.log(courses);
     res.json({ data: courses });
@@ -172,45 +177,45 @@ router.post('/userSearch', function(req, res) {
   if(req.body.Keyword !== ""){
     var key = req.body.Keyword;
     fuzzy_searh('course/uinstructor.txt',
-    key, 10, function(insts){
-      return fuzzy_searh('course/uinstructor_en.txt',
-        key, 10, function(insts_en){
-          return fuzzy_searh('course/ucourse_name.txt',
-            key, 10, function(course){
-              return fuzzy_searh('course/ucourse_name_en.txt',
-                key, 10, function(course_en){
-                  var eq_one = function(e){return e[1] === 1;};
-                  insts = insts.some(eq_one) ? insts.filter(eq_one) : insts;
-                  insts_en = insts_en.some(eq_one) ? insts_en.filter(eq_one) : insts_en;
+      key, 10, function(insts){
+        return fuzzy_searh('course/uinstructor_en.txt',
+          key, 10, function(insts_en){
+            return fuzzy_searh('course/ucourse_name.txt',
+              key, 10, function(course){
+                return fuzzy_searh('course/ucourse_name_en.txt',
+                  key, 10, function(course_en){
+                    var eq_one = function(e){return e[1] === 1;};
+                    insts = insts.some(eq_one) ? insts.filter(eq_one) : insts;
+                    insts_en = insts_en.some(eq_one) ? insts_en.filter(eq_one) : insts_en;
 
-                  insts.map(function(e){e.push("instructor");})
-                  insts_en.map(function(e){e.push("instructor_en");})
-                  course = course.map(function(e){ return [(new RegExp(e[0], "i")), e[1]]});
-                  course.map(function(e){e.push("crse");})
+                    insts.map(function(e){e.push("instructor");})
+                    insts_en.map(function(e){e.push("instructor_en");})
+                    course = course.map(function(e){ return [(new RegExp(e[0], "i")), e[1]]});
+                    course.map(function(e){e.push("crse");})
 
-                  
-                  course_en = [[new RegExp(key,"i") , 1, "crse"]]
 
-                  var all = insts.concat(insts_en.concat(course.concat(course_en)));
+                    course_en = [[new RegExp(key,"i") , 1, "crse"]]
 
-                  all = all.sort(function(a,b){return b[1] - a[1];});
-                  all = all.filter(function(e){return e[1] > 0;});
+                    var all = insts.concat(insts_en.concat(course.concat(course_en)));
 
-                  all = all.map(function(e){ var obj = {}; obj[e[2]] = e[0]; return obj;});
-                  query["$or"] = all;
-                  //if(insts.length !== 0)
-                  //  query.instructor = {$in : insts.map(e => e[0])};
-                  //if(insts_en.length !== 0)
-                  //  query.instructor_en = {$in : insts_en.map(e => e[0])};
-                  //if(course.length + course_en.length !== 0)
-                  //  query.crse = {$in :
-                  //    course.map(e => new RegExp(e[0] + '*', "i"))
-                  //    .concat(course_en.map(e => new RegExp('*' + e[0], "i")))};
-                  return reqInst(query, callback);
-                });
-            });
-        });
-    });
+                    all = all.sort(function(a,b){return b[1] - a[1];});
+                    all = all.filter(function(e){return e[1] > 0;});
+
+                    all = all.map(function(e){ var obj = {}; obj[e[2]] = e[0]; return obj;});
+                    query["$or"] = all;
+                    //if(insts.length !== 0)
+                    //  query.instructor = {$in : insts.map(e => e[0])};
+                    //if(insts_en.length !== 0)
+                    //  query.instructor_en = {$in : insts_en.map(e => e[0])};
+                    //if(course.length + course_en.length !== 0)
+                    //  query.crse = {$in :
+                    //    course.map(e => new RegExp(e[0] + '*', "i"))
+                    //    .concat(course_en.map(e => new RegExp('*' + e[0], "i")))};
+                    return reqInst(query, callback);
+                  });
+              });
+          });
+      });
   }
   else{
     return reqInst(query, callback);
