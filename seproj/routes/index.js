@@ -71,7 +71,7 @@ router.post('/userSearch', function(req, res) {
         }
       }
     }
-    //console.log(courses);
+    console.log(courses);
     res.json({ data: courses });
   }
 
