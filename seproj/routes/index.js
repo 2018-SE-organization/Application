@@ -57,7 +57,6 @@ router.post('/userSearch', function(req, res) {
       var test;
       if(q.hasOwnProperty("crse")){
         test = function(e){return q.crse.test(e);}
-
       }
       else if(q.hasOwnProperty("instructor")){
         test = function(e){return e.instructor.includes(q.instructor);}
@@ -66,7 +65,7 @@ router.post('/userSearch', function(req, res) {
         test = function(e){return e.instructor_en.includes(q.instructor_en);}
       }
       for(var c in result){
-        if(test(result[c])){
+        if(test(result[c]) && courses.indexOf(result[c]) == -1){
           courses.push(result[c]);
         }
       }
