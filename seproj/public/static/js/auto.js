@@ -30,6 +30,15 @@ function autocomplete(inp, arr) {
           b.addEventListener("click", function(e) {
               /*insert the value for the autocomplete text field:*/
               inp.value = this.getElementsByTagName("input")[0].value;
+
+              var event = new Event('input', { bubbles: true});
+              //Toggling simulated=false or true and will not trigger the value change
+              event.simulated = true;
+
+              inp.value = this.getElementsByTagName("input")[0].value;
+//科目名稱/教師姓名
+              inp.defaultValue = this.getElementsByTagName("input")[0].value;
+              inp.dispatchEvent(event);
               /*close the list of autocompleted values,
               (or any other open lists of autocompleted values:*/
               closeAllLists();
